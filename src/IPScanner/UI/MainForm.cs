@@ -22,6 +22,7 @@ public class MainForm : Form
     private readonly ContextMenuStrip _menu = new();
     private readonly System.Windows.Forms.Timer _flushTimer = new() { Interval = 150 };
 
+    private static readonly string[] EmptyRow = Enumerable.Repeat("", 8).ToArray();
     private readonly List<ScanResult> _results = new();
     private List<ScanResult> _view = new();
     private readonly ConcurrentQueue<ScanResult> _pending = new();
@@ -117,7 +118,10 @@ public class MainForm : Form
         _list.Columns.Add("Açık portlar", 220);
         _list.Columns.Add("Not", 110);
         _list.SmallImageList = BuildStatusIcons();
-        _list.RetrieveVirtualItem += (_, e) => e.Item = MakeItem(_view[e.ItemIndex]);
+        // Liste küçülürken Windows eski satır numaralarını bir süre daha isteyebilir
+        // (odaklı satır, erişilebilirlik araçları). Var olmayan satır için boş öğe ver.
+        _list.RetrieveVirtualItem += (_, e) =>
+            e.Item = e.ItemIndex >= 0 && e.ItemIndex < _view.Count ? MakeItem(_view[e.ItemIndex]) : new ListViewItem(EmptyRow);
         _list.ColumnClick += (_, e) => SortBy(e.Column);
         _list.DoubleClick += (_, _) => { if (Selected is { } r) OpenWeb(r, preferHttps: false); };
         _list.ContextMenuStrip = _menu;
@@ -475,7 +479,16 @@ public class MainForm : Form
         catch (FormatException ex) { MessageBox.Show(this, ex.Message); return; }
 
         _statusLabel.Text = $"{old.IpText} yeniden taranıyor…";
-        var fresh = await Task.Run(() => new Scanner(options).ScanHostAsync(old.Ip, CancellationToken.None));
+        ScanResult fresh;
+        try
+        {
+            fresh = await Task.Run(() => new Scanner(options).ScanHostAsync(old.Ip, CancellationToken.None));
+        }
+        catch (Exception ex)
+        {
+            _statusLabel.Text = $"{old.IpText} yeniden taranamadı: {ex.Message}";
+            return;
+        }
         int i = _results.FindIndex(x => x.Ip == old.Ip);
         if (i >= 0) _results[i] = fresh; else _results.Add(fresh);
         RebuildView();

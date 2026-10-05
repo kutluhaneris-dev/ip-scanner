@@ -1,0 +1,59 @@
+name: Derle
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Testler
+        run: dotnet test tests/IPScanner.Tests/IPScanner.Tests.csproj -c Release
+
+      - name: Tek exe olarak yayınla
+        run: >
+          dotnet publish src/IPScanner/IPScanner.csproj -c Release -r win-x64
+          --self-contained true
+          -p:PublishSingleFile=true
+          -p:IncludeNativeLibrariesForSelfExtract=true
+          -p:EnableCompressionInSingleFile=true
+          -p:DebugType=none
+          -o publish
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: IPScanner
+          path: publish/IPScanner.exe
+
+      # main dalına her gönderimde "Son sürüm" sayfasındaki exe güncellenir.
+      - name: Son sürümü güncelle
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete latest --yes --cleanup-tag 2>/dev/null || true
+          gh release create latest publish/IPScanner.exe \
+            --title "Son sürüm" \
+            --notes "main dalının son hali (${GITHUB_SHA::7}). IPScanner.exe dosyasını indirip çift tıklayın; kurulum gerekmez." \
+            --target "$GITHUB_SHA" --prerelease
+
+      - name: Sürüm yayınla
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" publish/IPScanner.exe --title "$GITHUB_REF_NAME" --generate-notes

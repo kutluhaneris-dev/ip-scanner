@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <!-- Arayüzden bağımsız çekirdek kodu, Windows olmadan da test edilebilsin diye doğrudan derle. -->
+  <ItemGroup>
+    <Compile Include="..\..\src\IPScanner\Core\IpRange.cs" />
+    <Compile Include="..\..\src\IPScanner\Core\PortList.cs" />
+    <Compile Include="..\..\src\IPScanner\Core\NetBios.cs" />
+    <Compile Include="..\..\src\IPScanner\Core\ScanResult.cs" />
+    <Compile Include="..\..\src\IPScanner\Core\CsvExporter.cs" />
+    <Compile Include="..\..\src\IPScanner\Core\WakeOnLan.cs" />
+    <Compile Include="..\..\src\IPScanner\Core\OuiDatabase.cs" />
+    <EmbeddedResource Include="..\..\src\IPScanner\Resources\oui.txt.gz" LogicalName="IPScanner.oui.txt.gz" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+  </ItemGroup>
+
+</Project>

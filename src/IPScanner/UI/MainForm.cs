@@ -13,7 +13,7 @@ public class MainForm : Form
 
     private readonly ComboBox _adapters = new() { DropDownStyle = ComboBoxStyle.DropDownList, Dock = DockStyle.Fill };
     private readonly TextBox _range = new() { Dock = DockStyle.Fill };
-    private readonly Button _scanButton = new() { Text = "Tara", Width = 110, Height = 28 };
+    private readonly Button _scanButton = new() { Text = "Tara", Width = 120, Height = 30 };
     private readonly TextBox _filter = new() { Dock = DockStyle.Fill, PlaceholderText = "IP, ad, MAC, üretici veya port ara…" };
     private readonly CheckBox _onlyAlive = new() { Text = "Sadece canlı cihazlar", AutoSize = true, Anchor = AnchorStyles.Left };
     private readonly ResultListView _list = new();
@@ -35,16 +35,23 @@ public class MainForm : Form
     public MainForm()
     {
         _launcher = new Launcher(_settings, this);
-        Text = "IP Tarayıcı";
+        SuspendLayout();
+        // Ölçüler 96 DPI'ya göre yazıldı; yüksek DPI ekranlarda orantılı büyütülür.
+        AutoScaleDimensions = new SizeF(96F, 96F);
         AutoScaleMode = AutoScaleMode.Dpi;
-        Font = new Font("Segoe UI", 9F);
-        ClientSize = new Size(1000, 620);
+        Text = "IPZ – IP Tarayıcı";
+        Font = new Font("Segoe UI", 9.5F);
+        BackColor = Theme.Background;
+        ForeColor = Theme.Text;
+        ClientSize = new Size(1080, 660);
         MinimumSize = new Size(760, 420);
         StartPosition = FormStartPosition.CenterScreen;
         KeyPreview = true;
         try { Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath); } catch { /* simge yoksa varsayılan */ }
 
         BuildLayout();
+        ResumeLayout(false);
+        PerformLayout();
         LoadAdapters();
 
         _flushTimer.Tick += (_, _) => Flush();
@@ -63,7 +70,7 @@ public class MainForm : Form
 
     private void BuildLayout()
     {
-        var menuStrip = new MenuStrip();
+        var menuStrip = new MenuStrip { Renderer = new Theme.MenuRenderer(), BackColor = Theme.Surface, Padding = new Padding(6, 3, 0, 3) };
         var file = new ToolStripMenuItem("&Dosya");
         file.DropDownItems.Add(new ToolStripMenuItem("CSV olarak &dışa aktar…", null, (_, _) => ExportCsv(), Keys.Control | Keys.S));
         file.DropDownItems.Add(new ToolStripSeparator());
@@ -78,14 +85,24 @@ public class MainForm : Form
         menuStrip.Items.AddRange(new ToolStripItem[] { file, tools, help });
         MainMenuStrip = menuStrip;
 
-        var top = new TableLayoutPanel { Dock = DockStyle.Top, AutoSize = true, ColumnCount = 3, Padding = new Padding(8, 8, 8, 4) };
+        var header = new HeaderPanel();
+
+        var top = new TableLayoutPanel { Dock = DockStyle.Top, AutoSize = true, ColumnCount = 3, Padding = new Padding(14, 12, 14, 10), BackColor = Theme.Surface };
         top.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
         top.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
         top.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
 
-        Label L(string text) => new() { Text = text, AutoSize = true, Anchor = AnchorStyles.Left, Margin = new Padding(0, 6, 8, 0) };
+        Label L(string text) => new()
+        {
+            Text = text, AutoSize = true, Anchor = AnchorStyles.Left, Margin = new Padding(0, 7, 10, 0),
+            ForeColor = Theme.MutedText, Font = new Font(Font, FontStyle.Bold)
+        };
 
-        var refresh = new Button { Text = "Yenile", Width = 110, Height = 28 };
+        var refresh = new Button { Text = "Yenile", Width = 120, Height = 30 };
+        Theme.StyleSecondary(refresh);
+        SetScanButton(scanning: false);
+        foreach (var c in new Control[] { _adapters, _range, _filter }) c.Margin = new Padding(3, 4, 8, 4);
+        refresh.Margin = _scanButton.Margin = new Padding(3, 3, 0, 3);
         refresh.Click += (_, _) => LoadAdapters();
         top.Controls.Add(L("Ağ kartı:"), 0, 0);
         top.Controls.Add(_adapters, 1, 0);
@@ -109,6 +126,9 @@ public class MainForm : Form
         hint.SetToolTip(_range, "Örnekler:\n192.168.1.1-192.168.1.254\n192.168.1.10-50\n10.0.0.0/24\n192.168.1.*\nBirden fazla aralığı virgülle ayırabilirsiniz.");
 
         _list.Dock = DockStyle.Fill;
+        _list.BorderStyle = BorderStyle.None;
+        _list.BackColor = Theme.Surface;
+        _list.ForeColor = Theme.Text;
         _list.Columns.Add("Durum", 80);
         _list.Columns.Add("IP adresi", 120);
         _list.Columns.Add("Ad", 180);
@@ -121,18 +141,24 @@ public class MainForm : Form
         // Liste küçülürken Windows eski satır numaralarını bir süre daha isteyebilir
         // (odaklı satır, erişilebilirlik araçları). Var olmayan satır için boş öğe ver.
         _list.RetrieveVirtualItem += (_, e) =>
-            e.Item = e.ItemIndex >= 0 && e.ItemIndex < _view.Count ? MakeItem(_view[e.ItemIndex]) : new ListViewItem(EmptyRow);
+            e.Item = e.ItemIndex >= 0 && e.ItemIndex < _view.Count ? MakeItem(_view[e.ItemIndex], e.ItemIndex) : new ListViewItem(EmptyRow);
         _list.ColumnClick += (_, e) => SortBy(e.Column);
         _list.DoubleClick += (_, _) => { if (Selected is { } r) OpenWeb(r, preferHttps: false); };
         _list.ContextMenuStrip = _menu;
         _menu.Opening += BuildContextMenu;
 
-        var status = new StatusStrip();
+        var status = new StatusStrip { Renderer = new Theme.MenuRenderer(), BackColor = Theme.Surface, SizingGrip = false };
+        _statusLabel.ForeColor = Theme.MutedText;
         status.Items.AddRange(new ToolStripItem[] { _statusLabel, _progress });
 
+        // Liste ile üst panel arasında ince bir ayırıcı çizgi.
+        var listHost = new Panel { Dock = DockStyle.Fill, Padding = new Padding(0, 1, 0, 0), BackColor = Theme.Border };
+        listHost.Controls.Add(_list);
+
         // Doldurma sırası: önce Fill olan liste, sonra kenara yapışanlar.
-        Controls.Add(_list);
+        Controls.Add(listHost);
         Controls.Add(top);
+        Controls.Add(header);
         Controls.Add(menuStrip);
         Controls.Add(status);
 
@@ -152,18 +178,21 @@ public class MainForm : Form
 
     private static ImageList BuildStatusIcons()
     {
-        var images = new ImageList { ImageSize = new Size(12, 12), ColorDepth = ColorDepth.Depth32Bit };
-        images.Images.Add(Dot(Color.FromArgb(46, 160, 67)));   // 0: canlı
-        images.Images.Add(Dot(Color.FromArgb(170, 170, 170))); // 1: yanıt yok
+        // Görüntü yüksekliği satır yüksekliğini de belirler; 22 piksel satırlara nefes aldırır.
+        var images = new ImageList { ImageSize = new Size(16, 22), ColorDepth = ColorDepth.Depth32Bit };
+        images.Images.Add(Dot(Theme.Alive)); // 0: canlı
+        images.Images.Add(Dot(Theme.Dead));  // 1: yanıt yok
         return images;
 
         static Bitmap Dot(Color c)
         {
-            var bmp = new Bitmap(12, 12);
+            var bmp = new Bitmap(16, 22);
             using var g = Graphics.FromImage(bmp);
             g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+            using var halo = new SolidBrush(Color.FromArgb(50, c));
             using var brush = new SolidBrush(c);
-            g.FillEllipse(brush, 1, 1, 10, 10);
+            g.FillEllipse(halo, 1, 4, 14, 14);
+            g.FillEllipse(brush, 4, 7, 8, 8);
             return bmp;
         }
     }
@@ -232,7 +261,7 @@ public class MainForm : Form
         _progress.Maximum = _total;
         _progress.Value = 0;
         _progress.Visible = true;
-        _scanButton.Text = "Durdur";
+        SetScanButton(scanning: true);
         _adapters.Enabled = false;
         _range.ReadOnly = true;
         _watch.Restart();
@@ -295,7 +324,7 @@ public class MainForm : Form
         _flushTimer.Stop();
         Flush();
 
-        _scanButton.Text = "Tara";
+        SetScanButton(scanning: false);
         _scanButton.Enabled = true;
         _adapters.Enabled = true;
         _range.ReadOnly = false;
@@ -388,7 +417,14 @@ public class MainForm : Form
         RebuildView();
     }
 
-    private static ListViewItem MakeItem(ScanResult r)
+    private void SetScanButton(bool scanning)
+    {
+        _scanButton.Text = scanning ? "■  Durdur" : "▶  Tara";
+        if (scanning) Theme.StylePrimary(_scanButton, Theme.Danger, Theme.DangerDark);
+        else Theme.StylePrimary(_scanButton, Theme.Primary, Theme.PrimaryDark);
+    }
+
+    private static ListViewItem MakeItem(ScanResult r, int index)
     {
         bool alive = r.Status == HostStatus.Alive;
         var item = new ListViewItem(new[]
@@ -402,7 +438,8 @@ public class MainForm : Form
             r.OpenPortsText,
             r.Note
         }, alive ? 0 : 1);
-        if (!alive) item.ForeColor = SystemColors.GrayText;
+        if (!alive) item.ForeColor = Theme.Dead;
+        if (index % 2 == 1) item.BackColor = Theme.AltRow;
         return item;
     }
 

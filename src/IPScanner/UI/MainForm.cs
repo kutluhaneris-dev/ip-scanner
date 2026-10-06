@@ -600,7 +600,9 @@ public class MainForm : Form
     {
         var version = typeof(MainForm).Assembly.GetName().Version;
         MessageBox.Show(this,
-            $"IP Tarayıcı {version?.ToString(3)}\n\n" +
+            $"IPZ IP Tarayıcı {version?.ToString(3)}\n" +
+            $"Geliştiren: {Theme.Author} – {Theme.Company}\n" +
+            "ipzproje.com.tr\n\n" +
             "Kısayollar:\n" +
             "  F5  Taramayı başlat\n" +
             "  Esc  Taramayı durdur\n" +

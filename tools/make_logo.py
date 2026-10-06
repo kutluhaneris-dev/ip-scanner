@@ -1,82 +1,58 @@
-"""IPZ logosunu çizer: Resources/ipz.ico (program simgesi) ve Resources/ipz-logo.png (başlık).
+"""IPZ logosundan program simgesini ve başlık görselini üretir.
 
+Kaynak: tools/ipz-logo-source.png (şeffaf zeminli beyaz IPZ logosu, ipzproje.com.tr).
+Çıktılar: src/IPScanner/Resources/ipz.ico, src/IPScanner/Resources/ipz-logo-white.png, docs/ipz-logo.png
 Kullanım: python3 tools/make_logo.py   (Pillow gerekir)
 """
-import math
 import os
-from PIL import Image, ImageDraw, ImageFont, ImageFilter
+from PIL import Image, ImageDraw
 
-ROOT = os.path.join(os.path.dirname(__file__), "..", "src", "IPScanner", "Resources")
-FONT = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
-TOP = (37, 99, 235)      # mavi
-BOTTOM = (6, 182, 212)   # camgöbeği
-
-
-def gradient(size):
-    img = Image.new("RGB", (size, size))
-    px = img.load()
-    for y in range(size):
-        for x in range(size):
-            t = (x + y) / (2 * (size - 1))
-            px[x, y] = tuple(round(a + (b - a) * t) for a, b in zip(TOP, BOTTOM))
-    return img
+HERE = os.path.dirname(__file__)
+RES = os.path.join(HERE, "..", "src", "IPScanner", "Resources")
+DOCS = os.path.join(HERE, "..", "docs")
+NAVY = (20, 33, 61, 255)  # Theme.Navy ile aynı
 
 
-def draw(size, with_text):
-    S = 1024  # büyük çiz, sonra küçült: kenarlar yumuşak olsun
-    base = gradient(256).resize((S, S), Image.BICUBIC).convert("RGBA")
-    mask = Image.new("L", (S, S), 0)
-    ImageDraw.Draw(mask).rounded_rectangle([0, 0, S - 1, S - 1], radius=int(S * 0.22), fill=255)
-    logo = Image.new("RGBA", (S, S), (0, 0, 0, 0))
-    logo.paste(base, (0, 0), mask)
+def load():
+    src = Image.open(os.path.join(HERE, "ipz-logo-source.png")).convert("RGBA")
+    full = src.crop(src.getchannel("A").getbbox())
+    # Yalnızca "IPZ" harfleri: alt satırdaki yazıdan önceki boşluğu bul.
+    alpha = full.getchannel("A")
+    w, h = full.size
+    rows = [any(alpha.getpixel((x, y)) > 40 for x in range(0, w, 2)) for y in range(h)]
+    y = int(h * 0.5)
+    while y < h and rows[y]:
+        y += 1
+    letters = full.crop((0, 0, w, y))
+    letters = letters.crop(letters.getchannel("A").getbbox())
+    return full, letters
 
-    layer = Image.new("RGBA", (S, S), (0, 0, 0, 0))
-    d = ImageDraw.Draw(layer)
-    white = (255, 255, 255, 255)
 
-    if with_text:
-        # Sağ üstte tarama dalgaları, solda altta "IPZ".
-        cx, cy = int(S * 0.70), int(S * 0.40)
-        r_dot = int(S * 0.045)
-        widths = int(S * 0.045)
-        for i, r in enumerate((0.11, 0.19, 0.27)):
-            rr = int(S * r)
-            alpha = (255, 200, 140)[i]
-            d.arc([cx - rr, cy - rr, cx + rr, cy + rr], start=200, end=340, fill=(255, 255, 255, alpha), width=widths)
-        d.ellipse([cx - r_dot, cy - r_dot, cx + r_dot, cy + r_dot], fill=white)
-
-        font = ImageFont.truetype(FONT, int(S * 0.38))
-        text = "IPZ"
-        box = d.textbbox((0, 0), text, font=font)
-        tw, th = box[2] - box[0], box[3] - box[1]
-        tx = (S - tw) // 2 - box[0]
-        ty = int(S * 0.88) - th - box[1]
-        shadow = Image.new("RGBA", (S, S), (0, 0, 0, 0))
-        ImageDraw.Draw(shadow).text((tx, ty + int(S * 0.012)), text, font=font, fill=(10, 30, 80, 110))
-        layer = Image.alpha_composite(shadow.filter(ImageFilter.GaussianBlur(S * 0.012)), layer)
-        d = ImageDraw.Draw(layer)
-        d.text((tx, ty), text, font=font, fill=white)
-    else:
-        # Küçük boylarda yazı okunmaz: yalnızca ortada tarama dalgaları.
-        cx, cy = S // 2, int(S * 0.72)
-        r_dot = int(S * 0.09)
-        for i, r in enumerate((0.25, 0.45)):
-            rr = int(S * r)
-            d.arc([cx - rr, cy - rr, cx + rr, cy + rr], start=215, end=325, fill=white, width=int(S * 0.11))
-        d.ellipse([cx - r_dot, cy - r_dot, cx + r_dot, cy + r_dot], fill=white)
-
-    logo = Image.alpha_composite(logo, layer)
-    return logo.resize((size, size), Image.LANCZOS)
+def icon(letters, size):
+    S = 512
+    img = Image.new("RGBA", (S, S), (0, 0, 0, 0))
+    ImageDraw.Draw(img).rounded_rectangle([0, 0, S - 1, S - 1], radius=int(S * 0.2), fill=NAVY)
+    margin = 0.14 if size >= 32 else 0.08
+    box = int(S * (1 - 2 * margin))
+    lw, lh = letters.size
+    scale = box / lw
+    mark = letters.resize((box, int(lh * scale)), Image.LANCZOS)
+    img.alpha_composite(mark, ((S - mark.width) // 2, (S - mark.height) // 2))
+    return img.resize((size, size), Image.LANCZOS)
 
 
 def main():
-    os.makedirs(ROOT, exist_ok=True)
+    full, letters = load()
     sizes = [16, 20, 24, 32, 40, 48, 64, 128, 256]
-    frames = [draw(s, with_text=s >= 40) for s in sizes]
-    frames[-1].save(os.path.join(ROOT, "ipz.ico"), format="ICO", sizes=[(s, s) for s in sizes],
-                    append_images=frames[:-1])
-    draw(128, True).save(os.path.join(ROOT, "ipz-logo.png"))
-    draw(512, True).save(os.path.join(os.path.dirname(__file__), "..", "docs", "ipz-logo.png"))
+    frames = [icon(letters, s) for s in sizes]
+    frames[-1].save(os.path.join(RES, "ipz.ico"), format="ICO", sizes=[(s, s) for s in sizes], append_images=frames[:-1])
+
+    # Başlık bandı için: tam logo (alt yazıyla), 120 px yükseklik.
+    h = 120
+    full.resize((round(full.width * h / full.height), h), Image.LANCZOS).save(os.path.join(RES, "ipz-logo-white.png"))
+
+    # README için lacivert zeminli kare.
+    icon(letters, 256).save(os.path.join(DOCS, "ipz-logo.png"))
 
 
 if __name__ == "__main__":

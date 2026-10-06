@@ -13,14 +13,16 @@
     <Version>1.0.0</Version>
     <Product>IPZ IP Tarayıcı</Product>
     <ApplicationIcon>Resources\ipz.ico</ApplicationIcon>
-    <Company>Kutluhan</Company>
+    <Company>IPZ PROJE</Company>
+    <Authors>Kutluhan</Authors>
+    <Copyright>© Kutluhan – IPZ PROJE</Copyright>
     <InvariantGlobalization>false</InvariantGlobalization>
     <SatelliteResourceLanguages>tr;en</SatelliteResourceLanguages>
   </PropertyGroup>
 
   <ItemGroup>
     <EmbeddedResource Include="Resources\oui.txt.gz" LogicalName="IPScanner.oui.txt.gz" />
-    <EmbeddedResource Include="Resources\ipz-logo.png" LogicalName="IPScanner.ipz-logo.png" />
+    <EmbeddedResource Include="Resources\ipz-logo-white.png" LogicalName="IPScanner.ipz-logo-white.png" />
   </ItemGroup>
 
 </Project>

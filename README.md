@@ -4,6 +4,8 @@
 
 <br clear="left">
 
+Geliştiren: **Kutluhan** – [IPZ PROJE](https://ipzproje.com.tr) (Innovative Projects Zone)
+
 Windows için basit ve hızlı bir ağ tarayıcısı. Ağdaki cihazları bulur, adlarını, MAC adreslerini,
 üreticilerini ve açık portlarını gösterir. Bulunan cihaza tek tıkla web tarayıcı, Telnet, SSH,
 Uzak Masaüstü veya paylaşılan klasörlerle bağlanabilirsiniz.
@@ -83,4 +85,4 @@ dotnet publish src/IPScanner/IPScanner.csproj -c Release -r win-x64 --self-conta
 Her `main` gönderiminde GitHub Actions exe'yi derleyip **Son sürüm** sayfasına koyar.
 `v1.0.0` gibi bir etiket gönderildiğinde de kalıcı bir sürüm oluşturur.
 
-Üretici listesi IEEE'nin herkese açık OUI kayıtlarından alınmıştır (`src/IPScanner/Resources/oui.txt.gz`).
+IPZ logosu IPZ PROJE'ye aittir. Üretici listesi IEEE'nin herkese açık OUI kayıtlarından alınmıştır (`src/IPScanner/Resources/oui.txt.gz`).

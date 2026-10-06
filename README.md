@@ -1,4 +1,8 @@
-# IP Tarayıcı
+<img src="docs/ipz-logo.png" width="96" align="left" alt="IPZ">
+
+# IPZ – IP Tarayıcı
+
+<br clear="left">
 
 Windows için basit ve hızlı bir ağ tarayıcısı. Ağdaki cihazları bulur, adlarını, MAC adreslerini,
 üreticilerini ve açık portlarını gösterir. Bulunan cihaza tek tıkla web tarayıcı, Telnet, SSH,

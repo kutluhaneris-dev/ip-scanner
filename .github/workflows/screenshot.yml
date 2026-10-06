@@ -7,6 +7,9 @@ on:
     branches: [main]
     paths: ['src/IPScanner/UI/**', 'src/IPScanner/Resources/**']
 
+permissions:
+  contents: write
+
 jobs:
   screenshot:
     runs-on: windows-latest
@@ -38,3 +41,16 @@ jobs:
         with:
           name: screenshot
           path: screenshot.png
+      # Görüntüyü ayrı bir dala da koy (indirmesi kolay olsun); main dalına dokunmaz.
+      - name: screenshots dalına yükle
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          cp screenshot.png "$RUNNER_TEMP/screenshot.png"
+          git checkout --orphan screenshots
+          git rm -rf -q .
+          cp "$RUNNER_TEMP/screenshot.png" screenshot.png
+          git add screenshot.png
+          git commit -q -m "Ekran görüntüsü (${GITHUB_SHA::7})"
+          git push -f origin screenshots

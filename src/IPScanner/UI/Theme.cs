@@ -130,11 +130,6 @@ internal sealed class HeaderPanel : Panel
         g.DrawString("IP Tarayıcı", _titleFont, Brushes.White, x, textTop);
         using var sub = new SolidBrush(Color.FromArgb(190, 255, 255, 255));
         g.DrawString("Ağdaki cihazları bul ve tek tıkla bağlan", _subtitleFont, sub, x + 2, textTop + titleSize.Height - 4);
-
-        // Sağda geliştirici bilgisi.
-        string credit = $"Geliştiren: {Theme.Author}  ·  {Theme.Company}";
-        var creditSize = g.MeasureString(credit, _subtitleFont);
-        g.DrawString(credit, _subtitleFont, sub, Width - creditSize.Width - 18 * k, (Height - creditSize.Height) / 2f);
     }
 
     protected override void Dispose(bool disposing)

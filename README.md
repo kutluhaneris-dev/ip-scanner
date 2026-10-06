@@ -4,8 +4,6 @@
 
 <br clear="left">
 
-Geliştiren: **Kutluhan** – [IPZ PROJE](https://ipzproje.com.tr) (Innovative Projects Zone)
-
 Windows için basit ve hızlı bir ağ tarayıcısı. Ağdaki cihazları bulur, adlarını, MAC adreslerini,
 üreticilerini ve açık portlarını gösterir. Bulunan cihaza tek tıkla web tarayıcı, Telnet, SSH,
 Uzak Masaüstü veya paylaşılan klasörlerle bağlanabilirsiniz.
